@@ -1,0 +1,11 @@
+{
+  "nota_total": 5,
+  "nota_maxima": 0,
+  "resultados": {
+    "ejercicio_1": {
+      "estado": "Correcto",
+      "puntos": 5,
+      "mensaje": "La lista_t1 debe contener los elementos correctos"
+    }
+  }
+}
