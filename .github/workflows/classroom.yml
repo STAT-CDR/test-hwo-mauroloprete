@@ -1,0 +1,145 @@
+name: Autograding Tests
+
+on:  
+  push:    
+    branches:      
+      - main  
+  workflow_dispatch:  
+
+permissions:  
+  contents: write
+  pull-requests: write
+
+
+jobs:   
+  run-autograding-tests:     
+    runs-on: ubuntu-latest     
+    if: ${{ github.event.head_commit.timestamp >= '2025-03-10T23:59:59Z' }}     
+    steps:       
+      - name: Checkout code         
+        uses: actions/checkout@v4        
+
+      - name: Verificar AWS CLI         
+        run: aws --version || echo "AWS CLI no está instalado"        
+
+      - name: Instalar AWS CLI        
+        run: |           
+          if ! command -v aws &> /dev/null; then             
+            sudo apt-get update             
+            sudo apt-get install -y awscli           
+          fi           
+          aws --version        
+
+      - name: Configurar credenciales de AWS         
+        uses: aws-actions/configure-aws-credentials@v2         
+        with:           
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}           
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}           
+          aws-region: us-east-2        
+
+      - name: Descargar JSON desde S3         
+        run: aws s3 cp s3://cdr25/HW-1/tests.json config/tests.json        
+
+      - name: Descargar autograde desde S3         
+        run: aws s3 cp s3://cdr25/HW-1/autograde.R config/autograde.R        
+
+      - name: Configurar R         
+        uses: r-lib/actions/setup-r@v2              
+
+      - name: Configurar Quarto        
+        uses: quarto-dev/quarto-actions/setup@v2         
+        with:           
+          tinytex: true        
+
+      - name: Instalar renv         
+        run: Rscript -e 'if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")'
+        
+      
+      - name: Instalar dependencias de R  (Base)
+        uses: r-lib/actions/setup-r-dependencies@v2         
+        with:
+          packages: |
+                any::data.table
+                any::quarto
+                any::ggplot2
+                any::dplyr
+                any::jsonlite
+                any::testthat
+
+      - name: Instalar dependencias de R (extra)
+        run: Rscript -e 'pkgs <- unique(renv::dependencies()$Package); install.packages(pkgs, repos = "https://cloud.r-project.org")'
+
+    
+      - name: Checkout feedback branch
+        run: |
+          git checkout -b feedback_hw
+      
+      
+      - name: Ejecutar script de evaluación        
+        run: Rscript config/autograde.R
+      
+      - name: Instalar jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Parsear summary.json para comentario en PR
+        id: parse_summary
+        run: |
+          nota_total=$(jq '.nota_total' summary.json)
+          nota_maxima=$(jq '.nota_maxima' summary.json)
+          resultados=$(jq -r '.resultados | to_entries | map("- **\(.key):** \(.value.estado) (\(.value.puntos))\n  \(.value.mensaje)\n") | .[]' summary.json)
+      
+          if [[ "$nota_total" == "null" ]]; then
+            nota="Pendiente"
+          else
+            nota="${nota_total}/${nota_maxima}"
+          fi
+      
+          summary_comment="### Resultados de la corrección automática:\n\n**Nota total:** $nota\n\n**Resumen por ejercicio:**\n$resultados"
+      
+          # Guardar en archivo para evitar problemas con caracteres especiales
+          echo "$summary_comment" > summary_comment.txt
+          echo "summary_comment_file=summary_comment.txt" >> "$GITHUB_OUTPUT"
+          echo "::set-output name=summary_comment::$summary_comment"
+      
+      - name: Commit y push de feedback a la rama feedback
+        run: |
+          git config --global user.name "Teacher CDR"
+          git config --global user.email "github-actions@github.com"
+          git add corrected_HW1.qmd corrected_HW1.html summary.json
+          git commit -m "📋 Corrección automática + revisión manual pendiente"
+          git push origin feedback_hw --force
+          
+      - name: Crear Pull Request para feedback
+        id: create_pr
+        run: |
+          pr_response=$(curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "title": "Corrección automática - Feedback HW1",
+              "head": "feedback_hw",
+              "base": "main",
+              "body": "Este PR contiene la corrección automática del HW1. Revisión manual pendiente."
+            }' \
+            "https://api.github.com/repos/${{ github.repository }}/pulls")
+
+          echo "PR Response: $pr_response"
+
+          pr_number=$(echo "$pr_response" | jq '.number')
+
+          if [ "$pr_number" == "null" ] || [ -z "$pr_number" ]; then
+            echo "No se pudo crear el PR."
+            exit 1
+          fi
+
+          echo "::set-output name=pr_number::$pr_number"
+      
+      - name: Comentar en Pull Request con los resultados
+        run: |
+          summary_comment=$(jq -Rs '.' < ${{ steps.parse_summary.outputs.summary_comment_file }})
+
+          curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"body\": ${summary_comment}}" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.create_pr.outputs.pr_number }}/comments"
+
+      

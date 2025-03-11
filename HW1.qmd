@@ -1,0 +1,46 @@
+---
+title: "Tarea 1"
+author: "Alumno"
+format: html
+subtitle: "Ciencia de Datos con R"
+---
+
+La fecha para entregar la Tarea 1 es el 1 de Abril a las 23:59 PM. La tarea es individual por lo que cada uno tiene que escribir su propia versión de la misma aunque se incentiva la consulta de dudas con estudiantes del curso así como en foros de EVA.
+
+
+**MUY IMPORTANTE** Cuando generen el proyecto de RStudio siempre revisar que están utilizando la codificación de texto UTF-8 (text encoding UTF8).
+Para ello, debes ir a: 
+
+**Tools -> Project Options -> Code Editing -> Text encoding seleccionar UTF-8**.
+
+Para que podamos ver sus tareas y corregir las mismas nos tienen que hacer colaboradores de su repositorio de GitHub a Mauro (mauroloprete) y a Juan Pablo (gh_usuario)
+
+Comienzá con los ejercicios más sencillos y intentá ser ordenado/a, enumerá los ejercicios y **utilizá un archivo .qmd el cual debe compilar a .html mostrando el código (chunks), o sea echo: TRUE**.
+
+Verán que tal vez algunos ejercicios tienen alguna dificultad adicional que las actividades, se espera que revisando el material sugerido en el curso y leyendo la ayuda en R deberían ser capaces de resolver los problemas. Si las preguntas no son suficientemente claras, pregunten en el foro de EVA. Si las dudas no son de comprensión de la letra se aconseja primero **buscar por su cuenta inicialmente** ya que es parte del aprendizaje.
+
+Si un ejercicio no lo pudiste realizar pero intentaste diferentes formas **no** dejes en blanco el ejercicio, mantené el código junto al razonamiento que utilizaste y si el código no funciona y sale error agregá en el bloque de código correspondiente **eval: false** para que el mismo no sea evaluado y compile el documento.
+
+```{r}
+library(testthat)
+```
+
+
+## Ejercicio 1: Listas
+
+### 1. Generá una lista que se llame `lista_t1` que contenga:
+
+- Un vector numérico de longitud 4 (`h`).
+- Una matriz de dimensión 4*3 (`u`).
+- La palabra "chau" (`palabra`).
+- Una secuencia diaria de fechas (clase Date) desde 2021/01/01 hasta 2021/12/30 (`fecha`).
+
+
+```{r}
+#| label: ejercicio_1
+
+```
+
+
+
+
