@@ -38,7 +38,17 @@ library(testthat)
 
 ```{r}
 #| label: ejercicio_1
-
+lista_t1 <-
+    list(
+        h = 1:4,
+        u = matrix(rnorm(12), nrow = 4),
+        palabra = 'chau',
+        fecha = seq.Date(
+            from = as.Date("2021-01-01"),
+            to = as.Date("2021-12-30"),
+            by = "day"
+        )
+    )
 ```
 
 
